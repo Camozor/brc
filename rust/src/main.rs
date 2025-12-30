@@ -1,5 +1,6 @@
-use std::io::{self, BufRead};
-use std::{collections::HashMap, str::FromStr};
+use std::env;
+use std::io::BufRead;
+use std::{collections::HashMap, fs::File, io::BufReader, str::FromStr};
 
 fn main() {
     let map = compute_temperatures();
@@ -8,10 +9,13 @@ fn main() {
 }
 
 fn compute_temperatures() -> HashMap<City, Temperature> {
-    let lines = read_lines();
+    let file_path = env::var("FILE").unwrap();
+    let file = File::open(file_path).unwrap();
+    let reader = BufReader::new(file);
 
     let mut map: HashMap<City, Temperature> = HashMap::new();
-    for line in lines {
+    for line in reader.lines() {
+        let line = line.unwrap();
         let (city, temperature) = parse_temperature(&line);
 
         let found_temperature = map.get_mut(city);
@@ -42,14 +46,6 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
     map
 }
 
-fn read_lines() -> Vec<String> {
-    io::stdin()
-        .lock()
-        .lines()
-        .map(|line| line.unwrap())
-        .collect()
-}
-
 fn parse_temperature(line: &str) -> (&str, f32) {
     let splits: Vec<&str> = line.split_terminator(";").collect();
 
@@ -63,6 +59,7 @@ fn format(map: HashMap<City, Temperature>) -> String {
     let mut stations: Vec<String> = vec![];
     for (city, temperature) in map.iter() {
         let mean = temperature.sum / (temperature.n as f32);
+        println!("Mean={mean} sum={} n={}", temperature.sum, temperature.n);
         let mean = format!("{:.1}", mean);
 
         let station = format!(
@@ -84,5 +81,5 @@ struct Temperature {
     minimum: f32,
     maximum: f32,
     sum: f32,
-    n: u16,
+    n: u32,
 }
