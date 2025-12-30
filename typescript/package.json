@@ -6,8 +6,9 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start:small": "FILE=data/small.txt node main.js",
-    "start:big": "FILE=data/measurements.txt node main.js"
+    "start:small": "FILE=../data/small.txt node main.js",
+    "start:medium": "FILE=../data/medium.txt node main.js",
+    "start:big": "FILE=../data/measurements.txt node main.js"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
