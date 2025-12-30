@@ -3,3 +3,6 @@ build_typescript:
 
 run_typescript:
 		yarn --cwd=typescript start:medium
+
+build_rust:
+		cargo -Z unstable-options -C rust/ build --release
