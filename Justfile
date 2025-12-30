@@ -6,3 +6,6 @@ run_typescript:
 
 build_rust:
 		cargo -Z unstable-options -C rust/ build --release
+
+run_rust:
+		./rust/target/release/brc
