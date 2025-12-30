@@ -5,7 +5,7 @@
   "author": "Camille",
   "license": "MIT",
   "scripts": {
-    "build": "tsc main.ts",
+    "build": "tsc",
     "start": "FILE=data/small.txt node main.js"
   },
   "devDependencies": {
