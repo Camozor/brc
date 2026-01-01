@@ -64,12 +64,8 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
 }
 
 fn parse_temperature(line: &str) -> (&str, f32) {
-    let splits: Vec<&str> = line.split_terminator(";").collect();
-
-    let city = splits[0];
-    let temperature: f32 = splits[1].parse().unwrap();
-
-    (city, temperature)
+    let (city, temperature) = line.split_once(';').unwrap();
+    (city, temperature.parse().unwrap())
 }
 
 fn format(map: HashMap<City, Temperature>) -> String {
