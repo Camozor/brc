@@ -67,7 +67,40 @@ fn parse_temperature(line: &str) -> (&str, f32) {
     let index = line.find(';').unwrap();
     let city = &line[..index];
     let temperature = &line[index + 1..];
-    (city, temperature.parse().unwrap())
+    let temperature = parse_number(temperature);
+    (city, temperature)
+}
+
+fn parse_number(s: &str) -> f32 {
+    let mut parsed: f32;
+    let mut chars = s.chars();
+    let mut negative = false;
+
+    let mut c = chars.next().unwrap();
+    if c == '-' {
+        negative = true;
+        c = chars.next().unwrap();
+    }
+    parsed = convert_char_to_f32(c);
+
+    c = chars.next().unwrap();
+    if c != '.' {
+        parsed = parsed * 10. + convert_char_to_f32(c);
+        chars.next().unwrap();
+    }
+    c = chars.next().unwrap();
+
+    parsed += convert_char_to_f32(c) / 10.;
+
+    if negative {
+        parsed = -parsed;
+    }
+
+    parsed
+}
+
+fn convert_char_to_f32(c: char) -> f32 {
+    ((c as u32) - (48 as u32)) as f32
 }
 
 fn format(map: HashMap<City, Temperature>) -> String {
@@ -96,4 +129,17 @@ struct Temperature {
     maximum: f32,
     sum: f32,
     n: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_number() {
+        assert_eq!(parse_number("8.3"), 8.3);
+        assert_eq!(parse_number("89.2"), 89.2);
+        assert_eq!(parse_number("-8.3"), -8.3);
+        assert_eq!(parse_number("-87.3"), -87.3);
+    }
 }
