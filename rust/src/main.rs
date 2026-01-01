@@ -64,7 +64,9 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
 }
 
 fn parse_temperature(line: &str) -> (&str, f32) {
-    let (city, temperature) = line.split_once(';').unwrap();
+    let index = line.find(';').unwrap();
+    let city = &line[..index];
+    let temperature = &line[index + 1..];
     (city, temperature.parse().unwrap())
 }
 
