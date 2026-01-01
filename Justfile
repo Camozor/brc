@@ -9,3 +9,6 @@ build_rust:
 
 run_rust:
 		./rust/target/release/brc
+
+view_perf:
+		pprof -http=:8080 profile.pb

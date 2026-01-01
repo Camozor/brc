@@ -30,7 +30,7 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 
-    let mut map: HashMap<City, Temperature> = HashMap::new();
+    let mut map: HashMap<City, Temperature> = HashMap::with_capacity(10000);
     for line in reader.lines() {
         let line = line.unwrap();
         let (city, temperature) = parse_temperature(&line);
