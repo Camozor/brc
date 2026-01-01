@@ -1,1 +1,2 @@
-d6c0437: 4min07s
+naive typescript version: 4min07s
+naive rust version: 1min25s

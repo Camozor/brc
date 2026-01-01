@@ -2,10 +2,27 @@ use std::env;
 use std::io::BufRead;
 use std::{collections::HashMap, fs::File, io::BufReader, str::FromStr};
 
+use pprof::protos::Message;
+use std::io::Write;
+
 fn main() {
+    let guard = pprof::ProfilerGuardBuilder::default()
+        .frequency(1000)
+        .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+        .build()
+        .unwrap();
+
     let map = compute_temperatures();
     let s = format(map);
     println!("{s}");
+
+    if let Ok(report) = guard.report().build() {
+        let mut file = File::create("profile.pb").unwrap();
+        let profile = report.pprof().unwrap();
+        let mut content = Vec::new();
+        profile.encode(&mut content).unwrap();
+        file.write_all(&content).unwrap();
+    };
 }
 
 fn compute_temperatures() -> HashMap<City, Temperature> {
@@ -56,10 +73,9 @@ fn parse_temperature(line: &str) -> (&str, f32) {
 }
 
 fn format(map: HashMap<City, Temperature>) -> String {
-    let mut stations: Vec<String> = vec![];
+    let mut stations: Vec<String> = Vec::with_capacity(map.len());
     for (city, temperature) in map.iter() {
         let mean = temperature.sum / (temperature.n as f32);
-        println!("Mean={mean} sum={} n={}", temperature.sum, temperature.n);
         let mean = format!("{:.1}", mean);
 
         let station = format!(

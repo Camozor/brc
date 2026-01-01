@@ -6,3 +6,5 @@ typescript/*.js
 node_modules/
 
 rust/target/
+flamegraph.svg
+profile.pb

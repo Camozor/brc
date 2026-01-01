@@ -18,6 +18,10 @@
           pkg-config
           cmake
           just
+
+          pprof
+          graphviz
+          perf
         ];
       };
 

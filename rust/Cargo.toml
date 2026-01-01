@@ -3,4 +3,8 @@ name = "brc"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+debug = "line-tables-only"
+
 [dependencies]
+pprof = { version = "0.15.0", features = ["protobuf", "prost-codec"] }
