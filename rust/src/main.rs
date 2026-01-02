@@ -34,6 +34,7 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
     for line in reader.lines() {
         let line = line.unwrap();
         let (city, temperature) = parse_temperature(&line);
+        let temperature = (temperature * 10.) as i32;
 
         let found_temperature = map.get_mut(city);
         if found_temperature.is_some() {
@@ -47,13 +48,13 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
                 found_temperature.maximum = temperature;
             }
 
-            found_temperature.sum += temperature;
+            found_temperature.sum += temperature as i64;
             found_temperature.n += 1;
         } else {
             let new_temperature = Temperature {
                 minimum: temperature,
                 maximum: temperature,
-                sum: temperature,
+                sum: temperature as i64,
                 n: 1,
             };
             map.insert(String::from_str(city).unwrap(), new_temperature);
@@ -106,13 +107,14 @@ fn convert_char_to_f32(c: char) -> f32 {
 fn format(map: HashMap<City, Temperature>) -> String {
     let mut stations: Vec<String> = Vec::with_capacity(map.len());
     for (city, temperature) in map.iter() {
-        let mean = temperature.sum / (temperature.n as f32);
+        let minimum = (temperature.minimum as f32) / 10.;
+        let maximum = (temperature.maximum as f32) / 10.;
+
+        let mean = temperature.sum / (temperature.n as i64);
+        let mean = (mean as f32) / 10.;
         let mean = format!("{:.1}", mean);
 
-        let station = format!(
-            "{city}={:.1}/{}/{:.1}",
-            temperature.minimum, mean, temperature.maximum
-        );
+        let station = format!("{city}={:.1}/{}/{:.1}", minimum, mean, maximum);
         stations.push(station);
     }
 
@@ -125,9 +127,9 @@ fn format(map: HashMap<City, Temperature>) -> String {
 type City = String;
 
 struct Temperature {
-    minimum: f32,
-    maximum: f32,
-    sum: f32,
+    minimum: i32,
+    maximum: i32,
+    sum: i64,
     n: u32,
 }
 
