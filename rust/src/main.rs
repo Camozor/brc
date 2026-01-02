@@ -7,6 +7,9 @@ use pprof::protos::Message;
 use std::io::Write;
 
 fn main() {
+    let profiling = env::var("PROFILING").unwrap_or(String::from("false"));
+    let profiling = profiling == "true";
+
     let guard = pprof::ProfilerGuardBuilder::default()
         .frequency(1000)
         .blocklist(&["libc", "libgcc", "pthread", "vdso"])
@@ -17,7 +20,7 @@ fn main() {
     let s = format(map);
     println!("{s}");
 
-    if let Ok(report) = guard.report().build() {
+    if profiling && let Ok(report) = guard.report().build() {
         let mut file = File::create("profile.pb").unwrap();
         let profile = report.pprof().unwrap();
         let mut content = Vec::new();
