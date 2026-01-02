@@ -46,7 +46,7 @@ fn compute_temperatures() -> HashMap<City, Temperature> {
             continue;
         }
 
-        let line_str = std::str::from_utf8(line).unwrap();
+        let line_str = unsafe { std::str::from_utf8_unchecked(line) };
         let line = line_str.to_owned();
         let (city, temperature) = parse_temperature(&line);
         let temperature = (temperature * 10.) as i32;
