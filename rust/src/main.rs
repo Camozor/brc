@@ -1,7 +1,8 @@
 use std::env;
-use std::io::BufRead;
-use std::{collections::HashMap, fs::File, io::BufReader, str::FromStr};
+use std::fs::OpenOptions;
+use std::{collections::HashMap, fs::File, str::FromStr};
 
+use memmap2::Mmap;
 use pprof::protos::Message;
 use std::io::Write;
 
@@ -26,13 +27,24 @@ fn main() {
 }
 
 fn compute_temperatures() -> HashMap<City, Temperature> {
-    let file_path = env::var("FILE").unwrap();
-    let file = File::open(file_path).unwrap();
-    let reader = BufReader::new(file);
-
     let mut map: HashMap<City, Temperature> = HashMap::with_capacity(10000);
-    for line in reader.lines() {
-        let line = line.unwrap();
+
+    let file_path = env::var("FILE").unwrap();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(false)
+        .open(file_path)
+        .unwrap();
+
+    let mmap = unsafe { Mmap::map(&file).unwrap() };
+
+    for line in mmap.split(|&byte| byte == b'\n') {
+        if line.is_empty() {
+            continue;
+        }
+
+        let line_str = std::str::from_utf8(line).unwrap();
+        let line = line_str.to_owned();
         let (city, temperature) = parse_temperature(&line);
         let temperature = (temperature * 10.) as i32;
 
