@@ -8,7 +8,7 @@ build_rust:
     cargo -Z unstable-options -C rust/ build --release
 
 run_rust:
-    ./rust/target/release/brc
+    cargo -Z unstable-options -C rust/ run --release
 
 view_perf:
     pprof -http=:8080 profile.pb

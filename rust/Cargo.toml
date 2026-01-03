@@ -7,5 +7,6 @@ edition = "2024"
 debug = "line-tables-only"
 
 [dependencies]
+ahash = "0.8.12"
 memmap2 = "0.9.9"
 pprof = { version = "0.15.0", features = ["protobuf", "prost-codec"] }
