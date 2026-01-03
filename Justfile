@@ -11,4 +11,4 @@ run_rust:
     cargo -Z unstable-options -C rust/ run --release
 
 view_perf:
-    pprof -http=:8080 profile.pb
+    pprof -http=:8080 rust/profile.pb

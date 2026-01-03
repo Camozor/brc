@@ -2,10 +2,11 @@ use std::env;
 use std::fs::OpenOptions;
 use std::{fs::File, str::FromStr};
 
-use ahash::AHashMap;
 use memmap2::Mmap;
 use pprof::protos::Message;
 use std::io::Write;
+
+use fnv::FnvHashMap;
 
 fn main() {
     let profiling = env::var("PROFILING").unwrap_or(String::from("false"));
@@ -30,8 +31,9 @@ fn main() {
     };
 }
 
-fn compute_temperatures() -> AHashMap<City, Temperature> {
-    let mut map: AHashMap<City, Temperature> = AHashMap::with_capacity(10000);
+fn compute_temperatures() -> FnvHashMap<City, Temperature> {
+    let mut map: FnvHashMap<City, Temperature> =
+        FnvHashMap::with_capacity_and_hasher(10_000, Default::default());
 
     let file_path = env::var("FILE").unwrap();
     let file = OpenOptions::new()
@@ -120,7 +122,7 @@ fn convert_char_to_f32(c: char) -> f32 {
     ((c as u32) - (48 as u32)) as f32
 }
 
-fn format(map: AHashMap<City, Temperature>) -> String {
+fn format(map: FnvHashMap<City, Temperature>) -> String {
     let mut stations: Vec<String> = Vec::with_capacity(map.len());
     for (city, temperature) in map.iter() {
         let minimum = (temperature.minimum as f32) / 10.;
