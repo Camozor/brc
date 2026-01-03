@@ -35,6 +35,12 @@ fn main() {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn compute_and_format() -> String {
+    let map = compute_temperatures();
+    format(map)
+}
+
 fn compute_temperatures() -> FnvHashMap<City, StationStat> {
     let file_path = env::var("FILE").unwrap();
     let file = OpenOptions::new()
