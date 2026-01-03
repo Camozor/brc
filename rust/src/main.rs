@@ -1,5 +1,7 @@
-use std::env;
+use std::collections::hash_map::Entry;
 use std::fs::OpenOptions;
+use std::sync::mpsc;
+use std::{env, thread};
 use std::{fs::File, str::FromStr};
 
 use memmap2::Mmap;
@@ -22,19 +24,18 @@ fn main() {
     let s = format(map);
     println!("{s}");
 
-    if profiling && let Ok(report) = guard.report().build() {
-        let mut file = File::create("profile.pb").unwrap();
-        let profile = report.pprof().unwrap();
-        let mut content = Vec::new();
-        profile.encode(&mut content).unwrap();
-        file.write_all(&content).unwrap();
-    };
+    if profiling {
+        if let Ok(report) = guard.report().build() {
+            let mut file = File::create("profile.pb").unwrap();
+            let profile = report.pprof().unwrap();
+            let mut content = Vec::new();
+            profile.encode(&mut content).unwrap();
+            file.write_all(&content).unwrap();
+        };
+    }
 }
 
-fn compute_temperatures() -> FnvHashMap<City, Temperature> {
-    let mut map: FnvHashMap<City, Temperature> =
-        FnvHashMap::with_capacity_and_hasher(10_000, Default::default());
-
+fn compute_temperatures() -> FnvHashMap<City, StationStat> {
     let file_path = env::var("FILE").unwrap();
     let file = OpenOptions::new()
         .read(true)
@@ -42,9 +43,74 @@ fn compute_temperatures() -> FnvHashMap<City, Temperature> {
         .open(file_path)
         .unwrap();
 
-    let mmap = unsafe { Mmap::map(&file).unwrap() };
+    let whole_memory_map = unsafe { Mmap::map(&file).unwrap() };
 
-    for line in mmap.split(|&byte| byte == b'\n') {
+    let mut map: FnvHashMap<City, StationStat> =
+        FnvHashMap::with_capacity_and_hasher(10_000, Default::default());
+
+    thread::scope(|s| {
+        let n_threads = thread::available_parallelism().unwrap().get();
+        let (sender, receiver) = mpsc::sync_channel(n_threads);
+
+        let chunk_size = whole_memory_map.len() / n_threads;
+        let mut pos = 0;
+
+        for _ in 0..n_threads {
+            let start = pos;
+            let end = (pos + chunk_size).min(whole_memory_map.len());
+            let end = if end == map.len() {
+                map.len()
+            } else {
+                let newline_pos = find_newline(&whole_memory_map[end..]);
+                end + newline_pos
+            };
+
+            let memory_chunk = &whole_memory_map[start..end];
+            pos = end;
+
+            let sender = sender.clone();
+            s.spawn(move || sender.send(compute_temperatures_chunk(memory_chunk)));
+        }
+        drop(sender);
+
+        for chunk_map in receiver {
+            for (city, chunk_stat) in chunk_map {
+                match map.entry(city) {
+                    Entry::Vacant(none) => {
+                        none.insert(chunk_stat);
+                    }
+                    Entry::Occupied(some) => {
+                        let stat = some.into_mut();
+                        stat.minimum = stat.minimum.min(chunk_stat.minimum);
+                        stat.maximum = stat.maximum.max(chunk_stat.maximum);
+                        stat.sum += chunk_stat.sum;
+                        stat.n += chunk_stat.n;
+                    }
+                }
+            }
+        }
+    });
+
+    map
+}
+
+fn find_newline(data: &[u8]) -> usize {
+    let mut pos = 0;
+    for c in data {
+        if *c == b'\n' {
+            break;
+        }
+        pos += 1;
+    }
+
+    pos
+}
+
+fn compute_temperatures_chunk(memory_map: &[u8]) -> FnvHashMap<City, StationStat> {
+    let mut map: FnvHashMap<City, StationStat> =
+        FnvHashMap::with_capacity_and_hasher(10_000, Default::default());
+
+    for line in memory_map.split(|&byte| byte == b'\n') {
         if line.is_empty() {
             continue;
         }
@@ -54,28 +120,28 @@ fn compute_temperatures() -> FnvHashMap<City, Temperature> {
         let (city, temperature) = parse_temperature(&line);
         let temperature = (temperature * 10.) as i32;
 
-        let found_temperature = map.get_mut(city);
-        if found_temperature.is_some() {
-            let found_temperature = found_temperature.unwrap();
+        let found_station_stat = map.get_mut(city);
+        if found_station_stat.is_some() {
+            let found_station_stat = found_station_stat.unwrap();
 
-            if temperature < found_temperature.minimum {
-                found_temperature.minimum = temperature;
+            if temperature < found_station_stat.minimum {
+                found_station_stat.minimum = temperature;
             }
 
-            if temperature > found_temperature.maximum {
-                found_temperature.maximum = temperature;
+            if temperature > found_station_stat.maximum {
+                found_station_stat.maximum = temperature;
             }
 
-            found_temperature.sum += temperature as i64;
-            found_temperature.n += 1;
+            found_station_stat.sum += temperature as i64;
+            found_station_stat.n += 1;
         } else {
-            let new_temperature = Temperature {
+            let new_station_stat = StationStat {
                 minimum: temperature,
                 maximum: temperature,
                 sum: temperature as i64,
                 n: 1,
             };
-            map.insert(String::from_str(city).unwrap(), new_temperature);
+            map.insert(String::from_str(city).unwrap(), new_station_stat);
         }
     }
 
@@ -122,7 +188,7 @@ fn convert_char_to_f32(c: char) -> f32 {
     ((c as u32) - (48 as u32)) as f32
 }
 
-fn format(map: FnvHashMap<City, Temperature>) -> String {
+fn format(map: FnvHashMap<City, StationStat>) -> String {
     let mut stations: Vec<String> = Vec::with_capacity(map.len());
     for (city, temperature) in map.iter() {
         let minimum = (temperature.minimum as f32) / 10.;
@@ -144,7 +210,8 @@ fn format(map: FnvHashMap<City, Temperature>) -> String {
 
 type City = String;
 
-struct Temperature {
+#[derive(Debug, Clone, Copy)]
+struct StationStat {
     minimum: i32,
     maximum: i32,
     sum: i64,
