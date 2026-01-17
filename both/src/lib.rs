@@ -98,8 +98,7 @@ fn compute_temperatures_chunk(memory_map: &[u8]) -> FnvHashMap<City, StationStat
     }
 
     let line_str = unsafe { std::str::from_utf8_unchecked(line) };
-    let line = line_str.to_owned();
-    let (city, temperature) = parse_temperature(&line);
+    let (city, temperature) = parse_temperature(line_str);
     let temperature = (temperature * 10.) as i32;
 
     let found_station_stat = map.get_mut(city);
